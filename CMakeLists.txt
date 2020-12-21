@@ -11,7 +11,7 @@ cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 # XXX This can be potentially done in future, but there still exist
 # some dependent project using cmake 2.8 - this can't be done this way.
 #cmake_minimum_required (VERSION 3.0.2 FATAL_ERROR)
-#project(SRT VERSION "1.4.1")
+#project(SRT VERSION "1.4.2")
 project(SRT C CXX)
 
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
@@ -43,7 +43,7 @@ if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
 	include(GNUInstallDirs)
 endif()
 
-set (SRT_VERSION 1.4.1)
+set (SRT_VERSION 1.4.2)
 set_version_variables(SRT_VERSION ${SRT_VERSION})
 
 # The CMAKE_BUILD_TYPE seems not to be always set, weird.
@@ -555,8 +555,7 @@ if(WIN32)
 	message(STATUS "DETECTED SYSTEM: WINDOWS;  WIN32=1; PTW32_STATIC_LIB=1")
 	add_definitions(-DWIN32=1 -DPTW32_STATIC_LIB=1)
 elseif(DARWIN)
-	message(STATUS "DETECTED SYSTEM: DARWIN;  OSX=1")
-	add_definitions(-DOSX=1)
+	message(STATUS "DETECTED SYSTEM: DARWIN")
 elseif(BSD)
 	message(STATUS "DETECTED SYSTEM: BSD;  BSD=1")
 	add_definitions(-DBSD=1)
@@ -565,8 +564,7 @@ elseif(LINUX)
 	message(STATUS "DETECTED SYSTEM: LINUX;  LINUX=1" )
 elseif(ANDROID)
 	add_definitions(-DLINUX=1)
-	add_definitions(-DANDROID=1)
-	message(STATUS "DETECTED SYSTEM: ANDROID;  LINUX=1 ANDROID=1" )
+	message(STATUS "DETECTED SYSTEM: ANDROID;  LINUX=1" )
 elseif(CYGWIN)
 	add_definitions(-DCYGWIN=1)
 	message(STATUS "DETECTED SYSTEM: CYGWIN (posix mode); CYGWIN=1")
@@ -1212,12 +1210,19 @@ if (ENABLE_UNITTESTS AND ENABLE_CXX11)
 		${PTHREAD_LIBRARY}
 		)
 
-	add_test(
-		NAME
+	if (${CMAKE_VERSION} VERSION_LESS "3.10.0") 
+		add_test(
+			NAME	test-srt
+			COMMAND	${CMAKE_BINARY_DIR}/test-srt
+		)
+	else()
+		cmake_policy(SET CMP0057 NEW) # Support the new IN_LIST operator.
+		gtest_add_tests(
 			test-srt
-		COMMAND
-			${CMAKE_BINARY_DIR}/test-srt
-	)
+			""
+			AUTO
+		)
+	endif()
 
 	enable_testing()
 

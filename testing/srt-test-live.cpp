@@ -111,9 +111,11 @@ void OnINT_ForceExit(int)
         throw ForcedExit("Requested exception interrupt");
 }
 
+std::string g_interrupt_reason;
+
 void OnAlarm_Interrupt(int)
 {
-    cerr << "\n---------- INTERRUPT ON TIMEOUT!\n";
+    cerr << "\n---------- INTERRUPT ON TIMEOUT: hang on " << g_interrupt_reason << "!\n";
     int_state = false; // JIC
     timer_state = true;
     throw AlarmExit("Watchdog bites hangup");
@@ -449,6 +451,7 @@ int main( int argc, char** argv )
         o_group     ((optargs), "<URIs...> Using multiple SRT connections as redundancy group", "g"),
 #endif
         o_stime     ((optargs), " Pass source time explicitly to SRT output", "st", "srctime", "sourcetime"),
+        o_retry     ((optargs), "<N=-1,0,+N> Retry connection N times if failed on timeout", "rc", "retry"),
         o_help      ((optargs), "[special=logging] This help", "?",   "help", "-help")
             ;
 
@@ -759,6 +762,17 @@ int main( int argc, char** argv )
         }
     }
 
+    string retryphrase = Option<OutString>(params, "", o_retry);
+    if (retryphrase != "")
+    {
+        if (retryphrase[retryphrase.size()-1] == 'a')
+        {
+            transmit_retry_always = true;
+            retryphrase = retryphrase.substr(0, retryphrase.size()-1);
+        }
+
+        transmit_retry_connect = stoi(retryphrase);
+    }
 
 #ifdef _WIN32
 #define alarm(argument) (void)0
@@ -888,6 +902,7 @@ int main( int argc, char** argv )
                 alarm(0);
             }
             Verb() << " << ... " << VerbNoEOL;
+            g_interrupt_reason = "reading";
             const MediaPacket& data = src->Read(chunk);
             Verb() << " << " << data.payload.size() << "  ->  " << VerbNoEOL;
             if ( data.payload.empty() && src->End() )
@@ -895,6 +910,7 @@ int main( int argc, char** argv )
                 Verb() << "EOS";
                 break;
             }
+            g_interrupt_reason = "writing";
             tar->Write(data);
             if (stoptime == 0 && timeout != -1 )
             {
