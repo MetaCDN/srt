@@ -38,23 +38,26 @@ extern Logger cnlog;
 #endif
 }
 
+namespace srt
+{
+class CUDT;
+
 
 // For KMREQ/KMRSP. Only one field is used.
 const size_t SRT_KMR_KMSTATE = 0;
 
 #define SRT_CMD_MAXSZ       HCRYPT_MSG_KM_MAX_SZ  /* Maximum SRT custom messages payload size (bytes) */
-const size_t SRTDATA_MAXSIZE = SRT_CMD_MAXSZ/sizeof(int32_t);
+const size_t SRTDATA_MAXSIZE = SRT_CMD_MAXSZ/sizeof(uint32_t);
 
 enum Whether2RegenKm {DONT_REGEN_KM = 0, REGEN_KM = 1};
 
 class CCryptoControl
 {
-//public:
-    class CUDT* m_parent;
-    SRTSOCKET   m_SocketID;
+    CUDT*     m_parent;
+    SRTSOCKET m_SocketID;
 
-    size_t      m_iSndKmKeyLen;        //Key length
-    size_t      m_iRcvKmKeyLen;        //Key length from rx KM
+    size_t    m_iSndKmKeyLen;        //Key length
+    size_t    m_iRcvKmKeyLen;        //Key length from rx KM
 
     // Temporarily allow these to be accessed.
 public:
@@ -69,7 +72,7 @@ private:
 
     HaiCrypt_Secret m_KmSecret;     //Key material shared secret
     // Sender
-    srt::sync::steady_clock::time_point     m_SndKmLastTime;
+    sync::steady_clock::time_point m_SndKmLastTime;
     struct {
         unsigned char Msg[HCRYPT_MSG_KM_MAX_SZ];
         size_t MsgLen;
@@ -162,7 +165,7 @@ public:
         using srt_logging::cnlog;
 #endif
 
-        m_SndKmLastTime = srt::sync::steady_clock::now();
+        m_SndKmLastTime = sync::steady_clock::now();
         if (runtime)
         {
             m_SndKmMsg[ki].iPeerRetry--;
@@ -265,5 +268,7 @@ public:
 
     ~CCryptoControl();
 };
+
+} // namespace srt
 
 #endif // SRT_CONGESTION_CONTROL_H

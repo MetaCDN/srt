@@ -12,7 +12,7 @@
 #include <unistd.h>
 #endif
 
-#if ENABLE_EXPERIMENTAL_BONDING
+#if ENABLE_BONDING
 
 #include "gtest/gtest.h"
 
@@ -98,7 +98,7 @@ void listening_thread(bool should_read)
     ASSERT_GT(fds_len, 0);
     ASSERT_EQ(fds[0], server_sock);
 
-    sockaddr_any scl;
+    srt::sockaddr_any scl;
     int acp = srt_accept(server_sock, (scl.get()), (&scl.len));
     ASSERT_NE(acp & SRTGROUP_MASK, 0);
 
@@ -291,6 +291,20 @@ TEST(Bonding, CloseGroupAndSocket)
         }
     }
 
+    // Some basic checks for group stats
+    SRT_TRACEBSTATS stats;
+    EXPECT_EQ(srt_bstats(ss, &stats, true), SRT_SUCCESS);
+    EXPECT_EQ(stats.pktSent, 0);
+    EXPECT_EQ(stats.pktSentTotal, 0);
+    EXPECT_EQ(stats.pktSentUnique, 0);
+    EXPECT_EQ(stats.pktSentUniqueTotal, 0);
+    EXPECT_EQ(stats.pktRecv, 0);
+    EXPECT_EQ(stats.pktRecvTotal, 0);
+    EXPECT_EQ(stats.pktRecvUnique, 0);
+    EXPECT_EQ(stats.pktRecvUniqueTotal, 0);
+    EXPECT_EQ(stats.pktRcvDrop, 0);
+    EXPECT_EQ(stats.pktRcvDropTotal, 0);
+
     std::cout << "Starting thread for sending:\n";
     std::thread sender([ss] {
         char buf[1316];
@@ -322,4 +336,4 @@ TEST(Bonding, CloseGroupAndSocket)
     srt_cleanup();
 }
 
-#endif // ENABLE_EXPERIMENTAL_BONDING
+#endif // ENABLE_BONDING

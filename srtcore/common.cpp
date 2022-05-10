@@ -70,15 +70,23 @@ modified by
 
 #include <srt_compat.h> // SysStrError
 
+using namespace std;
 using namespace srt::sync;
-
-namespace srt_logging {
-    extern Logger inlog;
-}
-
 using namespace srt_logging;
 
-CUDTException::CUDTException(CodeMajor major, CodeMinor minor, int err):
+namespace srt_logging
+{
+extern Logger inlog;
+}
+
+namespace srt
+{
+
+const char* strerror_get_message(size_t major, size_t minor);
+} // namespace srt
+
+
+srt::CUDTException::CUDTException(CodeMajor major, CodeMinor minor, int err):
 m_iMajor(major),
 m_iMinor(minor)
 {
@@ -88,246 +96,30 @@ m_iMinor(minor)
       m_iErrno = err;
 }
 
-const char* CUDTException::getErrorMessage() const ATR_NOTHROW
+const char* srt::CUDTException::getErrorMessage() const ATR_NOTHROW
 {
-    return getErrorString().c_str();
+    return strerror_get_message(m_iMajor, m_iMinor);
 }
 
-const string& CUDTException::getErrorString() const
+std::string srt::CUDTException::getErrorString() const
 {
-   // translate "Major:Minor" code into text message.
-
-   switch (m_iMajor)
-   {
-      case MJ_SUCCESS:
-        m_strMsg = "Success";
-        break;
-
-      case MJ_SETUP:
-        m_strMsg = "Connection setup failure";
-
-        switch (m_iMinor)
-        {
-        case MN_TIMEOUT:
-           m_strMsg += ": connection time out";
-           break;
-
-        case MN_REJECTED:
-           m_strMsg += ": connection rejected";
-           break;
-
-        case MN_NORES:
-           m_strMsg += ": unable to create/configure SRT socket";
-           break;
-
-        case MN_SECURITY:
-           m_strMsg += ": abort for security reasons";
-           break;
-
-        case MN_CLOSED:
-           m_strMsg += ": socket closed during operation";
-           break;
-
-        default:
-           break;
-        }
-
-        break;
-
-      case MJ_CONNECTION:
-        switch (m_iMinor)
-        {
-        case MN_CONNLOST:
-           m_strMsg = "Connection was broken";
-           break;
-
-        case MN_NOCONN:
-           m_strMsg = "Connection does not exist";
-           break;
-
-        default:
-           break;
-        }
-
-        break;
-
-      case MJ_SYSTEMRES:
-        m_strMsg = "System resource failure";
-
-        switch (m_iMinor)
-        {
-        case MN_THREAD:
-           m_strMsg += ": unable to create new threads";
-           break;
-
-        case MN_MEMORY:
-           m_strMsg += ": unable to allocate buffers";
-           break;
-
-
-        case MN_OBJECT:
-           m_strMsg += ": unable to allocate system object";
-           break;
-
-        default:
-           break;
-        }
-
-        break;
-
-      case MJ_FILESYSTEM:
-        m_strMsg = "File system failure";
-
-        switch (m_iMinor)
-        {
-        case MN_SEEKGFAIL:
-           m_strMsg += ": cannot seek read position";
-           break;
-
-        case MN_READFAIL:
-           m_strMsg += ": failure in read";
-           break;
-
-        case MN_SEEKPFAIL:
-           m_strMsg += ": cannot seek write position";
-           break;
-
-        case MN_WRITEFAIL:
-           m_strMsg += ": failure in write";
-           break;
-
-        default:
-           break;
-        }
-
-        break;
-
-      case MJ_NOTSUP:
-        m_strMsg = "Operation not supported";
- 
-        switch (m_iMinor)
-        {
-        case MN_ISBOUND:
-           m_strMsg += ": Cannot do this operation on a BOUND socket";
-           break;
-
-        case MN_ISCONNECTED:
-           m_strMsg += ": Cannot do this operation on a CONNECTED socket";
-           break;
-
-        case MN_INVAL:
-           m_strMsg += ": Bad parameters";
-           break;
-
-        case MN_SIDINVAL:
-           m_strMsg += ": Invalid socket ID";
-           break;
-
-        case MN_ISUNBOUND:
-           m_strMsg += ": Cannot do this operation on an UNBOUND socket";
-           break;
-
-        case MN_NOLISTEN:
-           m_strMsg += ": Socket is not in listening state";
-           break;
-
-        case MN_ISRENDEZVOUS:
-           m_strMsg += ": Listen/accept is not supported in rendezous connection setup";
-           break;
-
-        case MN_ISRENDUNBOUND:
-           m_strMsg += ": Cannot call connect on UNBOUND socket in rendezvous connection setup";
-           break;
-
-        case MN_INVALMSGAPI:
-           m_strMsg += ": Incorrect use of Message API (sendmsg/recvmsg).";
-           break;
-
-        case MN_INVALBUFFERAPI:
-           m_strMsg += ": Incorrect use of Buffer API (send/recv) or File API (sendfile/recvfile).";
-           break;
-
-        case MN_BUSY:
-           m_strMsg += ": Another socket is already listening on the same port";
-           break;
-
-        case MN_XSIZE:
-           m_strMsg += ": Message is too large to send (it must be less than the SRT send buffer size)";
-           break;
-
-        case MN_EIDINVAL:
-           m_strMsg += ": Invalid epoll ID";
-           break;
-
-        case MN_EEMPTY:
-           m_strMsg += ": All sockets removed from epoll, waiting would deadlock";
-
-        default:
-           break;
-        }
-
-        break;
-
-     case MJ_AGAIN:
-        m_strMsg = "Non-blocking call failure";
-
-        switch (m_iMinor)
-        {
-        case MN_WRAVAIL:
-           m_strMsg += ": no buffer available for sending";
-           break;
-
-        case MN_RDAVAIL:
-           m_strMsg += ": no data available for reading";
-           break;
-
-        case MN_XMTIMEOUT:
-           m_strMsg += ": transmission timed out";
-           break;
-
-#ifdef SRT_ENABLE_ECN
-        case MN_CONGESTION:
-           m_strMsg += ": early congestion notification";
-           break;
-#endif /* SRT_ENABLE_ECN */
-        default:
-           break;
-        }
-
-        break;
-
-     case MJ_PEERERROR:
-        m_strMsg = "The peer side has signalled an error";
-
-        break;
-
-      default:
-        m_strMsg = "Unknown error";
-   }
-
-   // Adding "errno" information
-   if ((MJ_SUCCESS != m_iMajor) && (0 < m_iErrno))
-   {
-      m_strMsg += ": " + SysStrError(m_iErrno);
-   }
-
-   return m_strMsg;
+    return getErrorMessage();
 }
 
 #define UDT_XCODE(mj, mn) (int(mj)*1000)+int(mn)
 
-int CUDTException::getErrorCode() const
+int srt::CUDTException::getErrorCode() const
 {
     return UDT_XCODE(m_iMajor, m_iMinor);
 }
 
-int CUDTException::getErrno() const
+int srt::CUDTException::getErrno() const
 {
    return m_iErrno;
 }
 
 
-void CUDTException::clear()
+void srt::CUDTException::clear()
 {
    m_iMajor = MJ_SUCCESS;
    m_iMinor = MN_NONE;
@@ -337,7 +129,7 @@ void CUDTException::clear()
 #undef UDT_XCODE
 
 //
-bool CIPAddress::ipcmp(const sockaddr* addr1, const sockaddr* addr2, int ver)
+bool srt::CIPAddress::ipcmp(const sockaddr* addr1, const sockaddr* addr2, int ver)
 {
    if (AF_INET == ver)
    {
@@ -365,7 +157,7 @@ bool CIPAddress::ipcmp(const sockaddr* addr1, const sockaddr* addr2, int ver)
    return false;
 }
 
-void CIPAddress::ntop(const sockaddr_any& addr, uint32_t ip[4])
+void srt::CIPAddress::ntop(const sockaddr_any& addr, uint32_t ip[4])
 {
     if (addr.family() == AF_INET)
     {
@@ -384,6 +176,7 @@ void CIPAddress::ntop(const sockaddr_any& addr, uint32_t ip[4])
     }
 }
 
+namespace srt {
 bool checkMappedIPv4(const uint16_t* addr)
 {
     static const uint16_t ipv4on6_model [8] =
@@ -398,11 +191,13 @@ bool checkMappedIPv4(const uint16_t* addr)
 
     return std::equal(mbegin, mend, addr);
 }
+}
 
 // XXX This has void return and the first argument is passed by reference.
 // Consider simply returning sockaddr_any by value.
-void CIPAddress::pton(sockaddr_any& w_addr, const uint32_t ip[4], const sockaddr_any& peer)
+void srt::CIPAddress::pton(sockaddr_any& w_addr, const uint32_t ip[4], const sockaddr_any& peer)
 {
+    //using ::srt_logging::inlog;
     uint32_t* target_ipv4_addr = NULL;
 
     if (peer.family() == AF_INET)
@@ -519,8 +314,8 @@ void CIPAddress::pton(sockaddr_any& w_addr, const uint32_t ip[4], const sockaddr
     }
 }
 
-using namespace std;
 
+namespace srt {
 static string ShowIP4(const sockaddr_in* sin)
 {
     ostringstream os;
@@ -572,9 +367,10 @@ string CIPAddress::show(const sockaddr* adr)
     else
         return "(unsupported sockaddr type)";
 }
+} // namespace srt
 
 //
-void CMD5::compute(const char* input, unsigned char result[16])
+void srt::CMD5::compute(const char* input, unsigned char result[16])
 {
    md5_state_t state;
 
@@ -583,6 +379,7 @@ void CMD5::compute(const char* input, unsigned char result[16])
    md5_finish(&state, result);
 }
 
+namespace srt {
 std::string MessageTypeStr(UDTMessageType mt, uint32_t extt)
 {
     using std::string;
@@ -649,7 +446,8 @@ std::string TransmissionEventStr(ETransmissionEvent ev)
         "checktimer",
         "send",
         "receive",
-        "custom"
+        "custom",
+        "sync"
     };
 
     size_t vals_size = Size(vals);
@@ -657,39 +455,6 @@ std::string TransmissionEventStr(ETransmissionEvent ev)
     if (size_t(ev) >= vals_size)
         return "UNKNOWN";
     return vals[ev];
-}
-
-extern const char* const srt_rejectreason_msg [] = {
-    "Unknown or erroneous",
-    "Error in system calls",
-    "Peer rejected connection",
-    "Resource allocation failure",
-    "Rogue peer or incorrect parameters",
-    "Listener's backlog exceeded",
-    "Internal Program Error",
-    "Socket is being closed",
-    "Peer version too old",
-    "Rendezvous-mode cookie collision",
-    "Incorrect passphrase",
-    "Password required or unexpected",
-    "MessageAPI/StreamAPI collision",
-    "Congestion controller type collision",
-    "Packet Filter type collision",
-    "Group settings collision",
-    "Connection timeout"
-};
-
-const char* srt_rejectreason_str(int id)
-{
-    if (id >= SRT_REJC_PREDEFINED)
-    {
-        return "Application-defined rejection reason";
-    }
-
-    static const size_t ra_size = Size(srt_rejectreason_msg);
-    if (size_t(id) >= ra_size)
-        return srt_rejectreason_msg[0];
-    return srt_rejectreason_msg[id];
 }
 
 bool SrtParseConfig(string s, SrtConfig& w_config)
@@ -707,18 +472,13 @@ bool SrtParseConfig(string s, SrtConfig& w_config)
         Split(*i, ':', back_inserter(keyval));
         if (keyval.size() != 2)
             return false;
-        w_config.parameters[keyval[0]] = keyval[1];
+        if (keyval[1] != "")
+            w_config.parameters[keyval[0]] = keyval[1];
     }
 
     return true;
 }
-
-uint64_t PacketMetric::fullBytes()
-{
-    static const int PKT_HDR_SIZE = CPacket::HDR_SIZE + CPacket::UDP_HDR_SIZE;
-    return bytes + pkts * PKT_HDR_SIZE;
-}
-
+} // namespace srt
 
 namespace srt_logging
 {
@@ -755,7 +515,7 @@ std::string SockStatusStr(SRT_SOCKSTATUS s)
     return names.names[int(s)-1];
 }
 
-#if ENABLE_EXPERIMENTAL_BONDING
+#if ENABLE_BONDING
 std::string MemberStatusStr(SRT_MEMBERSTATUS s)
 {
     if (int(s) < int(SRT_GST_PENDING) || int(s) > int(SRT_GST_BROKEN))
@@ -784,7 +544,7 @@ std::string MemberStatusStr(SRT_MEMBERSTATUS s)
 
 #if ENABLE_LOGGING
 
-LogDispatcher::Proxy::Proxy(LogDispatcher& guy) : that(guy), that_enabled(that.CheckEnabled())
+srt::logging::LogDispatcher::Proxy::Proxy(LogDispatcher& guy) : that(guy), that_enabled(that.CheckEnabled())
 {
     if (that_enabled)
     {
@@ -804,17 +564,22 @@ LogDispatcher::Proxy LogDispatcher::operator()()
 void LogDispatcher::CreateLogLinePrefix(std::ostringstream& serr)
 {
     using namespace std;
+    using namespace srt;
 
-    char tmp_buf[512];
+    SRT_STATIC_ASSERT(ThreadName::BUFSIZE >= sizeof("hh:mm:ss.") * 2, // multiply 2 for some margin
+                      "ThreadName::BUFSIZE is too small to be used for strftime");
+    char tmp_buf[ThreadName::BUFSIZE];
     if ( !isset(SRT_LOGF_DISABLE_TIME) )
     {
         // Not necessary if sending through the queue.
         timeval tv;
-        gettimeofday(&tv, 0);
+        gettimeofday(&tv, NULL);
         struct tm tm = SysLocalTime((time_t) tv.tv_sec);
 
-        strftime(tmp_buf, 512, "%X.", &tm);
-        serr << tmp_buf << setw(6) << setfill('0') << tv.tv_usec;
+        if (strftime(tmp_buf, sizeof(tmp_buf), "%X.", &tm))
+        {
+            serr << tmp_buf << setw(6) << setfill('0') << tv.tv_usec;
+        }
     }
 
     string out_prefix;
