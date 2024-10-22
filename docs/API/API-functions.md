@@ -174,6 +174,8 @@ Since SRT v1.5.0.
 | [SRT_REJ_CRYPTO](#SRT_REJ_CRYPTO)            | 1.5.2     | The connection was rejected due to an unsupported or mismatching encryption mode                               |
 | <img width=290px height=1px/>                |           |                                                                                                                |
 
+See the full list in [Rejection Reason Codes](./rejection-codes.md).
+
 <h4 id="error-codes">Error Codes</h4>
 
 | *Error Code*                                      | *Description*                                                                                                  |
@@ -1832,7 +1834,8 @@ call [`srt_sendmsg2`](#srt_sendmsg) or [`srt_recvmsg2`](#srt_recvmsg2) function
 for a group, you should pass an array here so that you can retrieve the status of
 particular member sockets. If you pass an array that is too small, your `grpdata_size`
 field will be rewritten with the current number of members, but without filling in
-the array. For details, see the [SRT Connection Bonding: Quick Start](../features/bonding-intro.md) and
+the array; otherwise both fields are updated to reflect the current connection state
+of the group. For details, see the [SRT Connection Bonding: Quick Start](../features/bonding-intro.md) and
 [SRT Connection Bonding: Socket Groups](../features/socket-groups.md) documents.
 
 **Helpers for [`SRT_MSGCTRL`](#SRT_MSGCTRL):**
